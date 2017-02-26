@@ -17,8 +17,8 @@ MAXDEPARTS = 5000
 
 CONSTRAINT_MODE = 0
 
-Lambda = 1
-Mu = 2
+Lambda = 1.0
+Mu = 2.0
 
 if len(sys.argv) > 4:
 	Lambda = float(sys.argv[1])
@@ -111,18 +111,22 @@ def runSimulation():
 			if (times[-1] >= MAXTIME):
 				break
 	completedArrivals = np.array(arrivals[:departureCount])
-	wait_times = np.array(departures) - completedArrivals
-	W = np.average(wait_times)
+	incompleteArrivals = np.array(arrivals[departureCount:])
 	tarray = np.array(times)
+	system_times_complete = np.array(departures) - completedArrivals
+	system_times_incomplete = np.ones(len(arrivals) - departureCount)*tarray[-1] - incompleteArrivals
+	S = (np.sum(system_times_incomplete) + np.sum(system_times_complete))/len(arrivals)
 	qarray = np.array(queues)
 	q_substantive = qarray[:-1]
 	difft = np.diff(tarray)
 	L = np.sum(q_substantive*difft/tarray[-1])
-	return tarray, qarray, L, W
+	print(len(arrivals))
+	print(departureCount)
+	return tarray, qarray, L, S
 
 def main():
-	tarray, qarray, L, W = runSimulation()
-	print("lambda = %.1f,    mu = %.1f,    rho = %.4f\nAvg queue Avg wait\n%.6f, %.6f"%(Lambda, Mu, rho, L, W))
+	tarray, qarray, L, S = runSimulation()
+	print("lambda = %.1f,    mu = %.1f,    rho = %.4f\nAvg queue Avg sys time\n%.6f, %.6f"%(Lambda, Mu, rho, L, S))
 	if (len(sys.argv) > 5 and sys.argv[5]) == '1':
 		plt.bar(tarray, qarray, edgecolor="none")
 		plt.xlabel("Time")
