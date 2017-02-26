@@ -42,7 +42,6 @@ EVENTHEAP = [(0, 'INIT'),]
 arrivals = []
 departures = []
 
-
 def newLifetime(event):
 	"""Generate a new event's lifetime, with the Poisson parameter specified in the rates map"""
 	return -1/rates[event]*np.log(1 - np.random.rand())
@@ -95,10 +94,14 @@ def runSimulation():
 	departureCount = 0
 	times = []
 	queues = []
+	arrivalCountArray = [0]
 	while (True):	
 		new_event = heapq.heappop(EVENTHEAP)
 		if (new_event[1] == 'd'):
 			departureCount += 1
+			arrivalCountArray.append(0)
+		elif (new_event[1] == 'a'):
+			arrivalCountArray.append(1)
 		updateState(new_event, queues)
 		updateFeasibleEvents(new_event, times)
 
@@ -116,18 +119,35 @@ def runSimulation():
 	u = np.sum(q_substantive*difft)
 	L = u/tarray[-1]
 	S = u/len(arrivals)
-	return tarray, qarray, L, S
+	return tarray, qarray, arrivalCountArray, L, S
 
 def main():
-	tarray, qarray, L, S = runSimulation()
-	print("lambda = %.1f,    mu = %.1f,    rho = %.4f\nAvg queue Avg sys time\n%.6f, %.6f"%(Lambda, Mu, rho, L, S))
+	tarray, qarray, arrivalCountArray, L, S = runSimulation()
+	uarray = np.cumsum(qarray[:-1]*np.diff(tarray))
+	qdiff = np.diff(qarray)
+
+	print("lambda = %.1f,    mu = %.1f,    rho = %.4f\nAvg queue   Avg sys time\n%.6f, %.6f"%(Lambda, Mu, rho, L, S))
 	if (len(sys.argv) > 5 and sys.argv[5]) == '1':
 		plt.bar(tarray, qarray, edgecolor="none")
+		plt.title("Sample path of queue length vs. run time")
 		plt.xlabel("Time")
 		plt.ylabel("Queue length")
 		plt.xlim(0, tarray[-1])
 		plt.savefig("samplepath.png")
 		plt.close()
-	
+
+		plt.figure()
+		plt.rc('text', usetex=True)
+		plt.rc('font', family='serif')
+		plt.plot(tarray[1:], uarray/tarray[1:], label=r"$\bar x$")
+		plt.plot(tarray[1:], uarray/np.cumsum(arrivalCountArray[1:]), label=r"$\bar s$")
+		plt.legend()
+		plt.title(r"Estimators $\bar x$ and $\bar s$ as functions of run time")
+		plt.xlabel("Departures")
+		plt.ylabel("Estimators")
+		plt.xlim(0, tarray[-1])
+		plt.savefig("estimators.png")
+		plt.close()
+
 if __name__ == '__main__':
 	main()
