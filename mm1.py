@@ -95,9 +95,7 @@ def runSimulation():
 	departureCount = 0
 	times = []
 	queues = []
-	while (True):
-		#print(QUEUE)
-		#print(EVENTHEAP)		
+	while (True):	
 		new_event = heapq.heappop(EVENTHEAP)
 		if (new_event[1] == 'd'):
 			departureCount += 1
@@ -110,18 +108,14 @@ def runSimulation():
 		else:
 			if (times[-1] >= MAXTIME):
 				break
-	completedArrivals = np.array(arrivals[:departureCount])
-	incompleteArrivals = np.array(arrivals[departureCount:])
+
 	tarray = np.array(times)
-	system_times_complete = np.array(departures) - completedArrivals
-	system_times_incomplete = np.ones(len(arrivals) - departureCount)*tarray[-1] - incompleteArrivals
-	S = (np.sum(system_times_incomplete) + np.sum(system_times_complete))/len(arrivals)
 	qarray = np.array(queues)
 	q_substantive = qarray[:-1]
 	difft = np.diff(tarray)
-	L = np.sum(q_substantive*difft/tarray[-1])
-	print(len(arrivals))
-	print(departureCount)
+	u = np.sum(q_substantive*difft)
+	L = u/tarray[-1]
+	S = u/len(arrivals)
 	return tarray, qarray, L, S
 
 def main():
