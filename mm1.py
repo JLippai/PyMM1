@@ -1,38 +1,39 @@
 """
-A simple simulation tool for generating sample paths of an M|M|1 queueing system
+Usage: python mm1.py [LAMBDA=1.0 MU=2.0 LIMIT_SWITCH=0 LIMIT_VALUE=10000 FIGURE_SAVE=1]
 
-The program takes arrival rate lambda, departure rate mu, CONSTRAINT_MODE, maximum 
-simulation runtime, and PLOT as parameters. CONSTRAINT_MODE dictates whether the run time is
-specified in time units (0) or number of departures (1). The program will plot the generated 
-sample path if PLOT is set. The output always includes the calculated average queue length and 
-average system time.
+The program simulates an M|M|1 queueing system with arrival rate LAMBDA and departure rate MU. 
+LIMIT_SWITCH=0 will allow defining the runtime LIMIT_VALUE in time units; LIMIT_SWITCH=1 will 
+define the runtime LIMIT_VALUE in departures. Setting FIGURE_SAVE will result in plots of a 
+sample path of queue length and of estimators average queue length and average system time being 
+generated and saved to samplepath.png and estimators.png
 """
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import heapq
 
-MAXTIME = 100000
-MAXDEPARTS = 5000
+LAMBDA = 1.0
+MU = 2.0
+LIMIT_SWITCH = 0
+LIMIT_VALUE = 10000
+FIGURE_SAVE = 1
 
-CONSTRAINT_MODE = 0
-
-Lambda = 1.0
-Mu = 2.0
 
 if len(sys.argv) > 4:
-	Lambda = float(sys.argv[1])
-	Mu = float(sys.argv[2])
-	CONSTRAINT_MODE = int(sys.argv[3])
-	if CONSTRAINT_MODE == 0:
-		MAXTIME = int(sys.argv[4])
+	LAMBDA = float(sys.argv[1])
+	MU = float(sys.argv[2])
+	LIMIT_SWITCH = int(sys.argv[3])
+	if LIMIT_SWITCH == 0:
+		LIMIT_VALUE = int(sys.argv[4])
 	else:
-		CONSTRAINT_MODE = 1
-		MAXDEPARTS = int(sys.argv[4])
+		LIMIT_SWITCH = 1
+		LIMIT_VALUE = int(sys.argv[4])
+	if len(sys.argv) > 5:
+		FIGURE_SAVE = int(sys.argv[5])
 
-rho = Lambda/Mu
+rho = LAMBDA/MU
 
-rates = {'a':Lambda, 'd':Mu}
+rates = {'a':LAMBDA, 'd':MU}
 infeasibleEvents = {'all':['INIT'], 0:['d']}
 feasibleEvents = {'all':['a', 'd']}
 
@@ -105,11 +106,11 @@ def runSimulation():
 		updateState(new_event, queues)
 		updateFeasibleEvents(new_event, times)
 
-		if (CONSTRAINT_MODE):
-			if (departureCount >= MAXDEPARTS):
+		if (LIMIT_SWITCH):
+			if (departureCount >= LIMIT_VALUE):
 				break
 		else:
-			if (times[-1] >= MAXTIME):
+			if (times[-1] >= LIMIT_VALUE):
 				break
 
 	tarray = np.array(times)
@@ -123,14 +124,20 @@ def runSimulation():
 
 def main():
 	tarray, qarray, arrivalCountArray, L, S = runSimulation()
-	uarray = np.cumsum(qarray[:-1]*np.diff(tarray))
-	qdiff = np.diff(qarray)
 
-	print("lambda = %.1f,    mu = %.1f,    rho = %.4f\nAvg queue   Avg sys time\n%.6f, %.6f"%(Lambda, Mu, rho, L, S))
-	if (len(sys.argv) > 5 and sys.argv[5]) == '1':
+	print("lambda = %.1f,    mu = %.1f,    rho = %.4f\nAvg queue, Avg sys time\n%.6f, %.6f"%(LAMBDA, MU, rho, L, S))
+
+	if (FIGURE_SAVE):
+		if (LIMIT_SWITCH):
+			runtimeLabel = 'Departures'
+		else:
+			runtimeLabel = 'Time'
+
+		uarray = np.cumsum(qarray[:-1]*np.diff(tarray))
+		qdiff = np.diff(qarray)
 		plt.bar(tarray, qarray, edgecolor="none")
-		plt.title("Sample path of queue length vs. run time")
-		plt.xlabel("Time")
+		plt.title("Sample path of queue length vs. %s"%runtimeLabel.lower())
+		plt.xlabel("%s"%runtimeLabel)
 		plt.ylabel("Queue length")
 		plt.xlim(0, tarray[-1])
 		plt.savefig("samplepath.png")
@@ -142,8 +149,8 @@ def main():
 		plt.plot(tarray[1:], uarray/tarray[1:], label=r"$\bar x$")
 		plt.plot(tarray[1:], uarray/np.cumsum(arrivalCountArray[1:]), label=r"$\bar s$")
 		plt.legend()
-		plt.title(r"Estimators $\bar x$ and $\bar s$ as functions of run time")
-		plt.xlabel("Departures")
+		plt.title(r"Estimators $\bar x$ and $\bar s$ as functions of %s"%runtimeLabel.lower())
+		plt.xlabel("%s"%runtimeLabel)
 		plt.ylabel("Estimators")
 		plt.xlim(0, tarray[-1])
 		plt.savefig("estimators.png")
